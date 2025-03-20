@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Billetera Virtual</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Billetera Virtual</h1>
+    <nav>
+      <ul>
+        <li><a href="#billetera">Inicio</a></li>
+        <li><a href="#transferir">Transferencias</a></li>
+        <li><a href="#cuentas">Cuentas</a></li>
+        <li><a href="#historial">Historial</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Sección para ingresar saldo inicial -->
+    <section id="saldo-inicio">
+      <h2>Ingresar Saldo Inicial</h2>
+      <input type="number" id="saldo-usuario" placeholder="Saldo Inicial" required>
+      <button onclick="guardarSaldo()">Guardar Saldo</button>
+    </section>
+
+    <!-- Sección principal con saldo disponible -->
+    <section id="billetera" style="display:none;">
+      <h2>Saldo Disponible</h2>
+      <p id="total-saldo">$0.00</p>
+    </section>
+
+    <!-- Sección para transferencias -->
+    <section id="transferir" style="display:none;">
+      <h2>Realizar Transferencias</h2>
+      <div id="contactos">
+        <h3>Contactos</h3>
+        <input type="text" id="buscar-contacto" oninput="filtrarContactos()" placeholder="Buscar contacto">
+        <ul id="lista-contactos"></ul>
+        <input type="text" id="nombre-contacto" placeholder="Nombre del contacto">
+        <button onclick="agregarContacto()">Agregar Contacto</button>
+      </div>
+      <hr>
+      <input type="text" id="nombre-contacto-transferir" placeholder="Nombre del contacto">
+      <input type="number" id="monto-transferir" placeholder="Monto a transferir">
+      <button onclick="transferirDinero()">Transferir</button>
+      <p id="mensaje-error" class="error hidden"></p>
+    </section>
+
+    <!-- Sección para cuentas pendientes y pago -->
+    <section id="cuentas" style="display:none;">
+      <h2>Cuentas Pendientes</h2>
+      <input type="text" id="nombre-cuenta" placeholder="Nombre de la Cuenta">
+      <input type="number" id="monto-cuenta" placeholder="Monto a Pagar">
+      <button onclick="agregarCuenta()">Agregar Cuenta</button>
+      <h3>Carro de Compras</h3>
+      <div id="carro-compras"></div>
+      <p id="total-carro">Total a Pagar: $0.00</p>
+      <button onclick="pagarCuentas()">Pagar Cuentas</button>
+      <p id="mensaje-pago" class="error hidden"></p>
+    </section>
+
+    <!-- Sección dedicada al historial -->
+    <section id="historial" style="display:none;">
+      <h2>Historial de Transacciones y Pagos de Cuentas</h2>
+      <div id="lista-historial"></div>
+    </section>
+  </main>
+
+  <script src="miarchivo.js"></script>
+</body>
+</html>
