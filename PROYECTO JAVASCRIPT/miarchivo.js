@@ -1,259 +1,332 @@
-// Variables iniciales
-let contactos = JSON.parse(localStorage.getItem('contactos')) || ['Juan Pérez', 'Ana Gómez', 'Luis Rodríguez', 'María Martínez'];
-let historialTransacciones = JSON.parse(localStorage.getItem('historialTransacciones')) || [];
-let cuentasPagadas = JSON.parse(localStorage.getItem('cuentasPagadas')) || [];
+// Variables iniciales  
+let contactos = JSON.parse(localStorage.getItem('contactos')) || [];  
+let cuentasPagadas = JSON.parse(localStorage.getItem('cuentasPagadas')) || [];  
+let gastos = JSON.parse(localStorage.getItem('gastos')) || [];  
+let cuentasPendientes = JSON.parse(localStorage.getItem('cuentasPendientes')) || [];  
+let saldo = parseFloat(localStorage.getItem('saldo')) || 0;  
+let carroCompras = [];  
+let graficoGastos;  
 
-let cuentasPendientes = JSON.parse(localStorage.getItem('cuentasPendientes')) || [
-  { nombre: 'Luz', monto: 50000 },
-  { nombre: 'Agua', monto: 40000 },
-  { nombre: 'Gas', monto: 20000 },
-  { nombre: 'Alquiler', monto: 230000 },
-  { nombre: 'Supermercado', monto: 180000 }
-];
+window.onload = () => {  
+    cargarContactos();  
+    actualizarCuentasPendientes();  
+    actualizarSaldoDisplay();  
+    actualizarGraficoGastos();  
+};  
 
-let saldo = parseFloat(localStorage.getItem('saldo')) || 0;
-let carroCompras = [];
+// Función para mostrar secciones  
+function mostrarSecciones() {  
+    ['billetera', 'transferir', 'cuentas', 'gastos'].forEach(id => {  
+        document.getElementById(id).style.display = '';  
+    });  
+}  
 
-// Al cargar la página, inicializar secciones y mostrar datos
-window.onload = function() {
-  cargarContactos();
-  actualizarCuentasPendientes();
-  actualizarHistorial();
-  actualizarSaldoDisplay();
-};
+// Función para filtrar contactos  
+function filtrarContactos() {  
+    const input = document.getElementById('buscar-contacto');  
+    const filter = input.value.toUpperCase();  
+    const lista = document.getElementById('lista-contactos');  
+    lista.innerHTML = '';  
+    contactos.filter(c => c.toUpperCase().includes(filter)).forEach(contacto => {  
+        const li = document.createElement('li');  
+        li.textContent = contacto;  
+        lista.appendChild(li);  
+    });  
+}  
 
-// Mostrar secciones principales luego de guardar el saldo
-function mostrarSecciones() {
-  document.getElementById('billetera').style.display = '';
-  document.getElementById('transferir').style.display = '';
-  document.getElementById('cuentas').style.display = '';
-  document.getElementById('historial').style.display = '';
-}
+// Función para agregar contacto  
+function agregarContacto() {  
+    const nombre = document.getElementById('nombre-contacto').value.trim();  
+    if (nombre && !contactos.includes(nombre)) {  
+        contactos.push(nombre);  
+        localStorage.setItem('contactos', JSON.stringify(contactos));  
+        document.getElementById('nombre-contacto').value = '';  
+        cargarContactos();  
+        Swal.fire('Contacto agregado', '', 'success');  
+    }  
+}  
 
-// Función para filtrar contactos
-function filtrarContactos() {
-  const input = document.getElementById('buscar-contacto');
-  const filter = input.value.toUpperCase();
-  const lista = document.getElementById('lista-contactos');
-  const contactosFiltrados = contactos.filter(contacto => contacto.toUpperCase().includes(filter));
-  lista.innerHTML = '';
-  contactosFiltrados.forEach(contacto => {
-    const li = document.createElement('li');
-    li.textContent = contacto;
-    lista.appendChild(li);
-  });
-}
+// Función para cargar contactos  
+function cargarContactos() {  
+    const lista = document.getElementById('lista-contactos');  
+    lista.innerHTML = '';  
+    contactos.forEach(contacto => {  
+        const li = document.createElement('li');  
+        li.textContent = contacto;  
+        lista.appendChild(li);  
+    });  
+}  
 
-// Agregar un nuevo contacto
-function agregarContacto() {
-  const nombreContacto = document.getElementById('nombre-contacto').value.trim();
-  if (nombreContacto && !contactos.includes(nombreContacto)) {
-    contactos.push(nombreContacto);
-    localStorage.setItem('contactos', JSON.stringify(contactos));
-    document.getElementById('nombre-contacto').value = '';
-    cargarContactos();
-  }
-}
+// Función para actualizar el saldo en la interfaz  
+function actualizarSaldoDisplay() {  
+    document.getElementById('total-saldo').textContent = `$${saldo.toFixed(2)}`;  
+}  
 
-// Cargar contactos en la lista
-function cargarContactos() {
-  const listaContactos = document.getElementById('lista-contactos');
-  listaContactos.innerHTML = '';
-  contactos.forEach(contacto => {
-    const li = document.createElement('li');
-    li.textContent = contacto;
-    listaContactos.appendChild(li);
-  });
-}
+// Función para guardar el saldo 
+function guardarSaldo() {  
+    const saldoUsuario = parseFloat(document.getElementById('saldo-usuario').value);  
+    const usuario = document.getElementById('usuario').value.trim();  
+    const contrasena = document.getElementById('contrasena').value.trim();  
 
-// Actualizar la visualización del saldo
-function actualizarSaldoDisplay() {
-  document.getElementById('total-saldo').textContent = `$${saldo.toFixed(2)}`;
-}
+    if (!usuario || !contrasena) {  
+        Swal.fire('Campos vacíos', 'Por favor ingresa un usuario y una contraseña.', 'warning');  
+        return;  
+    }  
 
-// Guardar el saldo inicial
-function guardarSaldo() {
-  const saldoUsuario = parseFloat(document.getElementById('saldo-usuario').value);
-  if (!isNaN(saldoUsuario) && saldoUsuario > 0) {
-    saldo = saldoUsuario;
-    localStorage.setItem('saldo', saldo);
-    document.getElementById('saldo-inicio').style.display = 'none';
-    mostrarSecciones();
-    actualizarSaldoDisplay();
-  }
-}
+    if (isNaN(saldoUsuario) || saldoUsuario <= 0) {  
+        Swal.fire('Saldo inválido', 'Por favor ingresa un saldo mayor a 0.', 'error');  
+        return;  
+    }  
 
-// Actualizar la lista de cuentas pendientes en el HTML
-function actualizarCuentasPendientes() {
-  const listaCuentas = document.getElementById('carro-compras');
-  listaCuentas.innerHTML = '';
-  cuentasPendientes.forEach((cuenta, index) => {
-    const div = document.createElement('div');
-    div.textContent = `${cuenta.nombre}: $${cuenta.monto.toFixed(2)}`;
-    const agregarBtn = document.createElement('button');
-    agregarBtn.textContent = 'Agregar al Carrito';
-    agregarBtn.onclick = () => agregarACarrito(index);
-    div.appendChild(agregarBtn);
-    listaCuentas.appendChild(div);
-  });
-  localStorage.setItem('cuentasPendientes', JSON.stringify(cuentasPendientes));
-}
+    saldo = saldoUsuario;  
+    localStorage.setItem('saldo', saldo);  
+    document.getElementById('saldo-inicio').style.display = 'none';  
+    mostrarSecciones();  
+    actualizarSaldoDisplay();  
+    Swal.fire('Bienvenido', `Bienvenido, ${usuario}<br> Tu saldo inicial es: $${saldo.toFixed(2)}`, 'success');  
+}  
 
-// Agregar cuenta al carrito
-function agregarACarrito(index) {
-  const cuenta = cuentasPendientes[index];
-  carroCompras.push(cuenta);
-  actualizarTotalCarro();
-  mostrarMensaje(`"${cuenta.nombre}" ha sido agregado al carrito.`);
-}
+// Función para actualizar cuentas pendientes  
+function actualizarCuentasPendientes() {  
+    const lista = document.getElementById('carro-compras');  
+    lista.innerHTML = '';  
+    cuentasPendientes.forEach((cuenta, i) => {  
+        if (cuenta.monto > 0) {  
+            const div = document.createElement('div');  
+            div.className = 'd-flex justify-content-between align-items-center mb-2';  
+            div.innerHTML = `  
+                <span>${cuenta.nombre}: $${cuenta.monto.toFixed(2)}</span>  
+                <div>  
+                    <button class="btn btn-sm btn-primary me-2" onclick="agregarACarrito(${i})">  
+                        Agregar al Carrito  
+                    </button>  
+                    <button class="btn btn-sm btn-danger" onclick="eliminarCuenta(${i})">  
+                        ❌  
+                    </button>  
+                </div>`;  
+            lista.appendChild(div);  
+        }  
+    });  
+    localStorage.setItem('cuentasPendientes', JSON.stringify(cuentasPendientes));  
+}  
 
-// Actualizar y mostrar el total del carrito
-function actualizarTotalCarro() {
-  const total = carroCompras.reduce((sum, cuenta) => sum + cuenta.monto, 0);
-  document.getElementById('total-carro').textContent = `Total a Pagar: $${total.toFixed(2)}`;
-}
+// Función para eliminar una cuenta  
+function eliminarCuenta(index) {  
+    if (index >= 0 && index < cuentasPendientes.length) {  
+        cuentasPendientes.splice(index, 1);  
+        localStorage.setItem('cuentasPendientes', JSON.stringify(cuentasPendientes));  
+        actualizarCuentasPendientes();  
+        Swal.fire('Cuenta eliminada', 'La cuenta ha sido eliminada correctamente.', 'success');  
+    }  
+}  
 
-// Mostrar mensajes temporales
-function mostrarMensaje(mensaje) {
-  const mensajePago = document.getElementById('mensaje-pago');
-  mensajePago.textContent = mensaje;
-  mensajePago.classList.remove('hidden');
-  setTimeout(() => {
-    mensajePago.classList.add('hidden');
-  }, 3000);
-}
+// Función para agregar una cuenta pendiente  
+function agregarCuentaPendiente() {  
+  const nombre = document.getElementById('nombre-cuenta').value.trim();  
+  const monto = parseFloat(document.getElementById('monto-cuenta').value);  
 
-// Procesar el pago de las cuentas en el carrito
-function pagarCuentas() {
-  const montoTotal = carroCompras.reduce((total, cuenta) => total + cuenta.monto, 0);
-  if (montoTotal > saldo) {
-    mostrarMensaje('No tienes saldo suficiente para pagar todas las cuentas.');
-    return;
-  }
-  saldo -= montoTotal;
-  localStorage.setItem('saldo', saldo);
-  actualizarSaldoDisplay();
+  if (!nombre || isNaN(monto) || monto <= 0) {  
+      if (!nombre) {  
+          Swal.fire('Error', 'Por favor ingresa el nombre de la cuenta', 'error');  
+      } else if (isNaN(monto) || monto <= 0) {  
+          Swal.fire('Error', 'Por favor ingresa un monto válido mayor a 0', 'error');  
+      }  
+      return;  
+  }  
 
-  const fechaActual = new Date().toLocaleString();
-  const timestampActual = Date.now();
+  cuentasPendientes.push({  
+      nombre: nombre,  
+      monto: monto  
+  });  
 
-  // Registrar transacción de pago global
-  const transaccionPago = {
-    tipo: 'Pago de cuentas',
-    detalle: `Total: $${montoTotal.toFixed(2)}`,
-    fecha: fechaActual,
-    timestamp: timestampActual
-  };
-  historialTransacciones.push(transaccionPago);
+ 
+  localStorage.setItem('cuentasPendientes', JSON.stringify(cuentasPendientes));  
 
-  // Registrar cada cuenta pagada individualmente
-  const cuentasPagadasConFecha = carroCompras.map(cuenta => ({
-    nombre: cuenta.nombre,
-    monto: cuenta.monto,
-    fecha: fechaActual,
-    timestamp: timestampActual
-  }));
-  cuentasPagadas = cuentasPagadas.concat(cuentasPagadasConFecha);
+   
+  document.getElementById('nombre-cuenta').value = '';  
+  document.getElementById('monto-cuenta').value = '';  
 
-  localStorage.setItem('historialTransacciones', JSON.stringify(historialTransacciones));
-  localStorage.setItem('cuentasPagadas', JSON.stringify(cuentasPagadas));
+  
+  actualizarCuentasPendientes();  
 
-  carroCompras = [];
-  actualizarTotalCarro();
-  actualizarHistorial();
-  mostrarMensaje('Cuentas pagadas exitosamente.');
-}
+  
+  Swal.fire('Cuenta Agregada', `La cuenta ${nombre} con monto $${monto.toFixed(2)} ha sido agregada correctamente`, 'success');  
+}  
 
-// Procesar la transferencia de dinero
-function transferirDinero() {
-  const nombreContacto = document.getElementById('nombre-contacto-transferir').value.trim();
-  const montoTransferir = parseFloat(document.getElementById('monto-transferir').value);
+// Función para agregar cuenta al carrito  
+function agregarACarrito(index) {  
+    if (index >= 0 && index < cuentasPendientes.length) {  
+        const cuenta = {...cuentasPendientes[index]};  
+        if (cuenta.monto > 0) {  
+            carroCompras.push(cuenta);  
+            actualizarTotalCarro();  
+            Swal.fire('Cuenta agregada al carrito', `La cuenta ${cuenta.nombre} ha sido agregada al carrito.`, 'success');  
+        } else {  
+            Swal.fire('Monto inválido', 'La cuenta no tiene un monto válido.', 'error');  
+        }  
+    }  
+}  
 
-  if (!nombreContacto || !contactos.includes(nombreContacto)) {
-    mostrarMensaje('Contacto no encontrado');
-    return;
-  }
-  if (isNaN(montoTransferir) || montoTransferir <= 0 || montoTransferir > saldo) {
-    document.getElementById('mensaje-error').textContent = 'Monto inválido o saldo insuficiente';
-    document.getElementById('mensaje-error').classList.remove('hidden');
-    setTimeout(() => {
-      document.getElementById('mensaje-error').classList.add('hidden');
-    }, 3000);
-    return;
-  }
-  saldo -= montoTransferir;
-  localStorage.setItem('saldo', saldo);
-  actualizarSaldoDisplay();
+// Función para actualizar el total del carrito  
+function actualizarTotalCarro() {  
+    const total = carroCompras.reduce((sum, c) => sum + (c.monto || 0), 0);  
+    document.getElementById('total-carro').textContent = `Total a Pagar: $${total.toFixed(2)}`;  
+    const listaDetalle = document.getElementById('detalle-carro');  
+    listaDetalle.innerHTML = '';  
 
-  const fechaActual = new Date().toLocaleString();
-  const timestampActual = Date.now();
+    carroCompras.forEach((item, i) => {  
+        const div = document.createElement('div');  
+        div.className = 'd-flex justify-content-between align-items-center mb-1';  
+        div.innerHTML = `  
+            <span>${item.nombre}: $${item.monto.toFixed(2)}</span>  
+            <button class="btn btn-sm btn-danger" onclick="eliminarDelCarrito(${i})">  
+                ❌  
+            </button>`;  
+        listaDetalle.appendChild(div);  
+    });  
+}  
 
-  const transaccionTransferencia = {
-    tipo: 'Transferencia',
-    detalle: `A ${nombreContacto} por $${montoTransferir.toFixed(2)}`,
-    fecha: fechaActual,
-    timestamp: timestampActual
-  };
-  historialTransacciones.push(transaccionTransferencia);
-  localStorage.setItem('historialTransacciones', JSON.stringify(historialTransacciones));
+// Función para eliminar una cuenta del carrito  
+function eliminarDelCarrito(index) {  
+    if (index >= 0 && index < carroCompras.length) {  
+        carroCompras.splice(index, 1);  
+        actualizarTotalCarro();  
+        Swal.fire('Cuenta eliminada del carrito', 'La cuenta ha sido eliminada del carrito.', 'success');  
+    }  
+}  
 
-  mostrarMensaje('Transferencia realizada exitosamente.');
-  actualizarHistorial();
+// Función para pagar cuentas  
+function pagarCuentas() {  
+    const total = carroCompras.reduce((sum, c) => sum + c.monto, 0);  
 
-  document.getElementById('nombre-contacto-transferir').value = '';
-  document.getElementById('monto-transferir').value = '';
-}
+    if (total > saldo) {  
+        Swal.fire('Saldo insuficiente', 'No tienes suficiente saldo para pagar las cuentas seleccionadas.', 'error');  
+        return;  
+    }  
 
-// Agregar una nueva cuenta pendiente
-function agregarCuenta() {
-  const nombreCuenta = document.getElementById('nombre-cuenta').value.trim();
-  const montoCuenta = parseFloat(document.getElementById('monto-cuenta').value);
-  if (!nombreCuenta || isNaN(montoCuenta) || montoCuenta <= 0) {
-    mostrarMensaje('Datos de cuenta inválidos');
-    return;
-  }
-  const nuevaCuenta = { nombre: nombreCuenta, monto: montoCuenta };
-  cuentasPendientes.push(nuevaCuenta);
-  localStorage.setItem('cuentasPendientes', JSON.stringify(cuentasPendientes));
-  actualizarCuentasPendientes();
-  mostrarMensaje('Cuenta agregada exitosamente.');
-  document.getElementById('nombre-cuenta').value = '';
-  document.getElementById('monto-cuenta').value = '';
-}
+    if (total <= 0) {  
+        Swal.fire('Sin cuentas para pagar', 'No hay cuentas en el carrito.', 'warning');  
+        return;  
+    }  
 
-// Actualizar y mostrar el historial combinado en la sección de historial
-function actualizarHistorial() {
-  const historialDiv = document.getElementById('lista-historial');
-  historialDiv.innerHTML = '';
+    saldo -= total;  
+    localStorage.setItem('saldo', saldo);  
+    actualizarSaldoDisplay();  
 
-  let historialCompleto = [];
+    cuentasPagadas.push(...carroCompras);  
+    localStorage.setItem('cuentasPagadas', JSON.stringify(cuentasPagadas));  
 
-  // Agregar transacciones de transferencias y pagos globales
-  historialTransacciones.forEach(tx => {
-    historialCompleto.push({
-      fecha: tx.fecha,
-      timestamp: tx.timestamp,
-      tipo: tx.tipo,
-      detalle: tx.detalle
-    });
-  });
+    carroCompras = [];  
+    actualizarTotalCarro();  
+    actualizarCuentasPendientes();  
+    actualizarGraficoGastos();  
 
-  // Agregar cada cuenta pagada individualmente
-  cuentasPagadas.forEach(cuenta => {
-    historialCompleto.push({
-      fecha: cuenta.fecha,
-      timestamp: cuenta.timestamp,
-      tipo: 'Pago de cuenta',
-      detalle: `${cuenta.nombre}: $${cuenta.monto.toFixed(2)}`
-    });
-  });
+    const resumen = carroCompras.map(c => `• ${c.nombre}: $${(c.monto || 0).toFixed(2)}`).join('<br>');  
+    Swal.fire({  
+        icon: 'success',  
+        title: 'Cuentas pagadas exitosamente',  
+        html: `Se pagaron las siguientes cuentas:<br><br>${resumen}<br><br>Total: $${total.toFixed(2)}`  
+    });  
+}  
 
-  // Ordenar el historial de más reciente a más antiguo
-  historialCompleto.sort((a, b) => b.timestamp - a.timestamp);
+// Función para transferir dinero  
+function transferirDinero() {  
+    const nombre = document.getElementById('nombre-contacto-transferir').value.trim();  
+    const monto = parseFloat(document.getElementById('monto-transferir').value);  
 
-  historialCompleto.forEach(item => {
-    const p = document.createElement('p');
-    p.textContent = `[${item.fecha}] ${item.tipo}: ${item.detalle}`;
-    historialDiv.appendChild(p);
-  });
-}
+    if (!nombre || !contactos.includes(nombre)) {  
+        Swal.fire('Contacto no encontrado', 'El contacto no está en tu lista.', 'warning');  
+        return;  
+    }  
+
+    if (isNaN(monto) || monto <= 0 || monto > saldo) {  
+        Swal.fire('Monto inválido', 'Por favor ingresa un monto válido.', 'error');  
+        return;  
+    }  
+
+    saldo -= monto;  
+    localStorage.setItem('saldo', saldo);  
+    actualizarSaldoDisplay();  
+
+    gastos.push({ monto, categoria: `Transferencia a ${nombre}` });  
+    localStorage.setItem('gastos', JSON.stringify(gastos));  
+    actualizarGraficoGastos();  
+
+    Swal.fire('Transferencia realizada', 'La transferencia se realizó correctamente.', 'success');  
+    document.getElementById('nombre-contacto-transferir').value = '';  
+    document.getElementById('monto-transferir').value = '';  
+}  
+
+// Función para agregar gasto  
+function agregarGasto() {  
+    const monto = parseFloat(document.getElementById('monto-gasto').value);  
+    const categoria = document.getElementById('categoria-gasto').value.trim();  
+
+    if (!categoria || isNaN(monto) || monto <= 0) {  
+        Swal.fire('Datos inválidos', 'Por favor ingresa una categoría y un monto válido.', 'warning');  
+        return;  
+    }  
+
+    if (monto > saldo) {  
+        Swal.fire('Saldo insuficiente', 'No tienes suficiente saldo para este gasto.', 'error');  
+        return;  
+    }  
+
+    gastos.push({ monto, categoria });  
+    saldo -= monto;  
+    localStorage.setItem('saldo', saldo);  
+    localStorage.setItem('gastos', JSON.stringify(gastos));  
+    actualizarSaldoDisplay();  
+
+    document.getElementById('monto-gasto').value = '';  
+    document.getElementById('categoria-gasto').value = '';  
+    actualizarGraficoGastos();  
+
+    Swal.fire('Gasto agregado', 'El gasto ha sido agregado correctamente.', 'success');  
+}  
+
+// Función para obtener totales por categoría  
+function obtenerTotalesPorCategoria() {  
+    const categorias = {};  
+    gastos.forEach(g => {  
+        categorias[g.categoria] = (categorias[g.categoria] || 0) + g.monto;  
+    });  
+
+    const totalCuentas = cuentasPagadas.reduce((sum, c) => sum + (c.monto || 0), 0);  
+    if (totalCuentas > 0) {  
+        categorias['Pagos de Cuentas'] = totalCuentas;  
+    }  
+
+    return categorias;  
+}  
+
+// Función para actualizar el gráfico de gastos  
+function actualizarGraficoGastos() {  
+    const ctx = document.getElementById('grafico-gastos').getContext('2d');  
+    if (graficoGastos) {  
+        graficoGastos.destroy();  
+    }  
+
+    const datos = obtenerTotalesPorCategoria();  
+    const labels = Object.keys(datos);  
+    const valores = Object.values(datos);  
+
+    graficoGastos = new Chart(ctx, {  
+        type: 'pie',  
+        data: {  
+            labels: labels,  
+            datasets: [{  
+                data: valores,  
+                backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#20c997']  
+            }]  
+        },  
+        options: {  
+            responsive: true,  
+            plugins: {  
+                legend: {  
+                    position: 'right'  
+                }  
+            }  
+        }  
+    });  
+}  
